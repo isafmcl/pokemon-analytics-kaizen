@@ -71,14 +71,5 @@ streamlit run src/app/streamlit_app.py
 - **2 Pokemon com geração nula** (0.25%): Dados faltantes na API, sem impacto nas análises
 - **16 Pokemon sem combates** (2%): Normal - novos ou raros. Monitorar periodicamente
 
-## 🔄 Refatoração Recente
-
-Serviços reorganizados para Single Responsibility Principle:
-
-- **BattleMetricsService**: 274 → 128 linhas (separado em `battle_metrics_service.py` + `metrics_calculator.py`)
-- **ApiClient**: Dividido em `http_client.py` (requisições básicas) + `api_client.py` (lógica inteligente com retry)
-- **UI**: 597 linhas monolíticas → 4 módulos especializados (renderers, sections, utils)
-
-
 Autenticação JWT com refresh automático em caso de expiração. Retry automático em rate limit (429).
 
