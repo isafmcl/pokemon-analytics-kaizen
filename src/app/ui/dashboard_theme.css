@@ -1,0 +1,355 @@
+:root {
+  --bg-main: #f0f4f8;
+  --bg-card: #ffffff;
+  --text-main: #1a202c;
+  --text-muted: #718096;
+  --color-primary: #2563eb;
+  --color-danger: #ef4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+}
+
+[data-testid="stAppViewContainer"] {
+  background-color: var(--bg-main);
+}
+
+[data-testid="stAppViewBlockContainer"] {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+  max-width: 1400px;
+}
+
+.main .block-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+h1 {
+  font-weight: 800;
+  font-size: 2rem;
+  color: var(--text-main);
+  margin-bottom: 1.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+
+.metric-card {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1d4ed8 100%);
+  border-radius: 16px;
+  padding: 1.8rem;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: float 6s ease-in-out infinite;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(37, 99, 235, 0.25);
+}
+
+.metric-card.orange {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.15);
+}
+
+.metric-card.orange:hover {
+  box-shadow: 0 15px 35px rgba(239, 68, 68, 0.25);
+}
+
+.metric-card.green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15);
+}
+
+.metric-card.green:hover {
+  box-shadow: 0 15px 35px rgba(16, 185, 129, 0.25);
+}
+
+.metric-card.purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15);
+}
+
+.metric-card.purple:hover {
+  box-shadow: 0 15px 35px rgba(139, 92, 246, 0.25);
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin-top: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10px, 10px); }
+}
+
+.section-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.8rem;
+  margin-top: 2rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.section-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ===============================
+   TÍTULOS DE SEÇÃO
+=================================*/
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.3rem;
+}
+
+.section-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+  font-weight: 500;
+}
+
+
+.team-card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.2rem;
+  margin-top: 1.5rem;
+}
+
+.team-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 1.2rem;
+  border-radius: 14px;
+  border: 2px solid #e2e8f0;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--color-primary);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12);
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  transition: left 0.5s ease;
+}
+
+.team-card:hover::before {
+  left: 100%;
+}
+
+.pokemon-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1d4ed8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  margin: 0 auto 0.8rem;
+  font-size: 1.8rem;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.pokemon-name {
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.pokemon-type {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.pokemon-stats {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  padding: 0.6rem;
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 8px;
+  margin-top: auto;
+}
+
+.corr-matrix {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.corr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.corr-header {
+  background: #1a202c;
+  color: #f8fafc;
+  padding: 0.8rem 0.6rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.corr-row-header {
+  background: #2d3748;
+  color: #f8fafc;
+  padding: 0.8rem 0.6rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.corr-cell {
+  padding: 0.8rem 0.6rem;
+  text-align: center;
+  border: 1px solid #cbd5e1;
+  font-weight: 700;
+  color: white;
+}
+
+.corr-very-strong {
+  background: #1e3a8a;
+}
+
+.corr-strong {
+  background: #dc2626;
+}
+
+.corr-medium {
+  background: #f59e0b;
+}
+
+.corr-weak {
+  background: #f3f4f6;
+  color: #1a202c;
+}
+
+.corr-none {
+  background: #f9fafb;
+  color: #718096;
+}
+
+/* ===============================
+   TABELAS WIN RATE
+=================================*/
+
+.win-rate-table {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.win-rate-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 0.8fr 0.8fr 1fr;
+  gap: 1rem;
+  padding: 0.8rem;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.win-rate-row:hover {
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.win-rate-type {
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.win-rate-pokemon {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.win-rate-value {
+  background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.status-ok {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.status-fail {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}

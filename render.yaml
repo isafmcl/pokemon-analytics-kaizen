@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: pokemon-analytics-platform
+    env: python
+    region: us-east
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run src/app/streamlit_app.py --config.toml=streamlit_config.toml
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: API_BASE_URL
+        value: https://pokeapi.co/api/v2
+      - key: API_USERNAME
+        sync: false
+      - key: API_PASSWORD
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: LOG_LEVEL
+        value: INFO
