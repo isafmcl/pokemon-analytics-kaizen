@@ -1,90 +1,44 @@
-Pokemon Analytics Platform
-Plataforma de inteligência de dados voltada à análise estratégica de performance competitiva. O sistema consolida um pipeline de ETL (Extract, Transform, Load) robusto, persistência em banco de dados relacional e uma camada de visualização analítica para suporte à decisão em tempo real.
+# Pokemon Analytics Platform
 
-Stack Tecnológica
-Linguagem: Python 3.11.9
+Plataforma de inteligência para análise estratégica de performance competitiva. Integra pipeline ETL resiliente, persistência em PostgreSQL e dashboard analítico para suporte à decisão.
 
-Data Pipeline: Pandas, NumPy
+## Stack Tecnológica
 
-Persistência: PostgreSQL, SQLAlchemy (ORM), Psycopg2
+* **Linguagem:** Python 3.11.9
+* **Pipeline:** Pandas, NumPy, Pydantic
+* **Database:** PostgreSQL, SQLAlchemy (ORM)
+* **Interface:** Streamlit
+* **Segurança:** JWT Auth (Refresh Token) & Retry Logic (429/401)
 
-Interface: Streamlit
+## Core Engine
 
-Segurança: Autenticação via JWT (JSON Web Tokens) com lógica de Refresh Token e retry automático
+### 1. ETL & Observabilidade
+* **Resiliência:** Fetch com retries e tratamento de rate limit.
+* **Transformação:** Normalização de schemas e cálculo de métricas (Win Rate, Weighted Score).
+* **Idempotência:** Carga otimizada para garantir integridade referencial e zero duplicidade.
 
-Core Engine
-1. Pipeline de ETL e Observabilidade
-O sistema implementa um fluxo de dados idempotente que garante a consistência entre a API de origem e o Data Warehouse:
+### 2. Analytics
+* Matrizes de correlação de tipos e eficácia.
+* Distribuição estatística de atributos base.
+* Rankings de performance baseados em amostragem histórica.
 
-Extração: Mecanismo de fetch com resiliência a falhas (implementação de retries para erros 429 e 401).
+## 3.Instalação do Ambiente
 
-Transformação: Normalização de esquemas complexos, tratamento de tipos aninhados e cálculo de métricas derivadas (Win Rate, Weighted Score).
-
-Carga: Operações de escrita otimizadas para garantir a integridade referencial e evitar duplicidade de registros.
-
-2. Analytics & Business Intelligence
-O dashboard processa volumes significativos de dados de combate para extrair:
-
-Matriz de correlação de tipos e eficácia elementar.
-
-Distribuição estatística de atributos base (HP, Attack, Defense, etc.).
-
-Rankings de performance baseados em amostragem histórica de vitórias e frequência de uso.
-
-## 🏗️ Arquitetura
-
-```
-src/
-├── services/etl/          # Pipeline ETL completa
-│   ├── data_extraction/   # Fetch da API com retry (429, 401)
-│   ├── data_cleaning/     # Normalização, type splitting
-│   ├── data_transformation/ # Cálculo de métricas (win_rate, weighted_score)
-│   └── data_loading/      # Inserção idempotente no BD
-├── app/
-│   ├── streamlit_app.py   # Dashboard principal
-│   └── ui/                # Componentes reutilizáveis
-│       ├── renderers/     # Charts, cards, tables, insights
-│       ├── sections/      # Seções do dashboard
-│       └── utils/         # Helpers, constants, validation
-├── repositories/          # Data access layer
-├── database/              # Models SQLAlchemy
-└── analytics/             # Serviços de análise
-```
-
-## 🔧 Setup & Execução
-
-### Instalação
-```bash
 python -m venv .venv
-.venv\Scripts\activate  
+source .venv/bin/activate  # Linux/macOS
+# ou .venv\Scripts\activate no Windows
 pip install -r requirements.txt
-```
 
-### ETL (Carregar dados)
-```bash
+## 4.Inicialização do Sistema
+
+# 1. Executar o Pipeline de Dados
 python run_etl.py
-```
 
-### Dashboard
-```bash
+# 2. Iniciar o Dashboard
 streamlit run src/app/streamlit_app.py
-```
 
-## ✅ Status de Qualidade dos Dados (01/03/2026)
+## 5.Análise Crítica
+Diferenciais: Design modular que separa a lógica de ingestão da camada de visualização; resiliência nativa contra instabilidades de rede e APIs externas.
 
-| Métrica | Valor | Status |
-|---------|-------|--------|
-| **Duplicatas Pokemon** | 0 | ✅ Zero |
-| **Duplicatas Combates** | 0 | ✅ Zero |
-| **Integridade Referencial** | 100% | ✅ Válidas |
-| **Completude** | 99.7% | ✅ Excelente |
-| **Anomalias Lógicas** | 0 | ✅ Zero |
-
-Análise Crítica e Roadmap
-Pontos Fortes
-Modularização: A separação clara entre a camada de extração e a de visualização facilita a escalabilidade e a manutenção do código.
-
-Resiliência de Rede: O tratamento nativo de rate limiting garante a continuidade do ETL mesmo sob restrições severas da API.
-
-Carga Idempotente: O design assegura que múltiplas execuções do script de carga não gerem redundância no banco de dados.
-
+## 6.Roadmap: 
+Containerização via Docker para padronização de ambiente e implementação de logs estruturados para monitoramento de saúde do pipeline em produção.
