@@ -1,19 +1,35 @@
-# Pokemon Analytics Platform
+Pokemon Analytics Platform
+Plataforma de inteligência de dados voltada à análise estratégica de performance competitiva. O sistema consolida um pipeline de ETL (Extract, Transform, Load) robusto, persistência em banco de dados relacional e uma camada de visualização analítica para suporte à decisão em tempo real.
 
-Dashboard interativo de análise estratégica de combates Pokémon com ETL automatizado e persistência em banco de dados.
+Stack Tecnológica
+Linguagem: Python 3.11.9
 
-## 🚀 Stack Tecnológico
+Data Pipeline: Pandas, NumPy
 
-- **Python 3.11.9** com SQLAlchemy + psycopg2
-- **Streamlit** para dashboard interativo
-- **API REST** com autenticação JWT
-- **Pandas** + NumPy para transformação de dados
+Persistência: PostgreSQL, SQLAlchemy (ORM), Psycopg2
 
-## 📊 O Que Faz
+Interface: Streamlit
 
-1. **ETL Automatizado**: Extrai 799 Pokémon e 47.943 combates da API, limpa, transforma e persiste em PostgreSQL
-2. **Dashboard**: Visualiza win rates, correlações de tipos, rankings, distribuições de stats
-3. **Análises**: Identifica estratégias de combate, Pokemon top performers, padrões de sucesso
+Segurança: Autenticação via JWT (JSON Web Tokens) com lógica de Refresh Token e retry automático
+
+Core Engine
+1. Pipeline de ETL e Observabilidade
+O sistema implementa um fluxo de dados idempotente que garante a consistência entre a API de origem e o Data Warehouse:
+
+Extração: Mecanismo de fetch com resiliência a falhas (implementação de retries para erros 429 e 401).
+
+Transformação: Normalização de esquemas complexos, tratamento de tipos aninhados e cálculo de métricas derivadas (Win Rate, Weighted Score).
+
+Carga: Operações de escrita otimizadas para garantir a integridade referencial e evitar duplicidade de registros.
+
+2. Analytics & Business Intelligence
+O dashboard processa volumes significativos de dados de combate para extrair:
+
+Matriz de correlação de tipos e eficácia elementar.
+
+Distribuição estatística de atributos base (HP, Attack, Defense, etc.).
+
+Rankings de performance baseados em amostragem histórica de vitórias e frequência de uso.
 
 ## 🏗️ Arquitetura
 
@@ -64,12 +80,11 @@ streamlit run src/app/streamlit_app.py
 | **Completude** | 99.7% | ✅ Excelente |
 | **Anomalias Lógicas** | 0 | ✅ Zero |
 
-**Conclusão**: Dados aprovados para produção. Zero problemas críticos.
+Análise Crítica e Roadmap
+Pontos Fortes
+Modularização: A separação clara entre a camada de extração e a de visualização facilita a escalabilidade e a manutenção do código.
 
-### Achados Menores
+Resiliência de Rede: O tratamento nativo de rate limiting garante a continuidade do ETL mesmo sob restrições severas da API.
 
-- **2 Pokemon com geração nula** (0.25%): Dados faltantes na API, sem impacto nas análises
-- **16 Pokemon sem combates** (2%): Normal - novos ou raros. Monitorar periodicamente
-
-Autenticação JWT com refresh automático em caso de expiração. Retry automático em rate limit (429).
+Carga Idempotente: O design assegura que múltiplas execuções do script de carga não gerem redundância no banco de dados.
 
