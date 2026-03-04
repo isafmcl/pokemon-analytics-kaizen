@@ -95,6 +95,20 @@ class CombatLoadService:
                 dropped,
             )
 
+        # Additional safety: filter out combats with Pokemon ID > 799
+        mask_valid_ids = (
+            (filtered_combats[first_pokemon_column] <= 799)
+            & (filtered_combats[second_pokemon_column] <= 799)
+            & (filtered_combats[winner_column] <= 799)
+        )
+        filtered_combats = filtered_combats[mask_valid_ids]
+        extra_dropped = len(combats_normalized[mask]) - len(filtered_combats)
+        if extra_dropped > 0:
+            self._logger.warning(
+                "Ignorando %s combates com Pokemon ID > 799 como camada adicional de segurança",
+                extra_dropped,
+            )
+
         required_columns = [
             first_pokemon_column,
             second_pokemon_column,
@@ -225,3 +239,4 @@ class CombatLoadService:
             raise ValidationError(
                 f"DataFrame '{frame_name}' não contém as colunas obrigatórias: {missing}"
             )
+
