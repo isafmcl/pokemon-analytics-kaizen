@@ -53,6 +53,19 @@ class CombatLoadService:
             winner_column=winner_column,
         )
 
+        # Safety filter: remove combats with any Pokemon ID > 799
+        original_count = len(combats_normalized)
+        combats_normalized = combats_normalized[
+            (pd.to_numeric(combats_normalized[first_pokemon_column], errors="coerce") <= 799)
+            & (pd.to_numeric(combats_normalized[second_pokemon_column], errors="coerce") <= 799)
+            & (pd.to_numeric(combats_normalized[winner_column], errors="coerce") <= 799)
+        ].copy()
+        if len(combats_normalized) < original_count:
+            self._logger.warning(
+                "Filtrando %d combates com Pokemon ID > 799",
+                original_count - len(combats_normalized),
+            )
+
         all_ids_series = pd.concat(
             [
                 combats_normalized[first_pokemon_column],
@@ -93,20 +106,6 @@ class CombatLoadService:
             self._logger.warning(
                 "Ignorando %s combates que referenciam IDs de Pokemon desconhecidos",
                 dropped,
-            )
-
-        # Additional safety: filter out combats with Pokemon ID > 799
-        mask_valid_ids = (
-            (filtered_combats[first_pokemon_column] <= 799)
-            & (filtered_combats[second_pokemon_column] <= 799)
-            & (filtered_combats[winner_column] <= 799)
-        )
-        filtered_combats = filtered_combats[mask_valid_ids]
-        extra_dropped = len(combats_normalized[mask]) - len(filtered_combats)
-        if extra_dropped > 0:
-            self._logger.warning(
-                "Ignorando %s combates com Pokemon ID > 799 como camada adicional de segurança",
-                extra_dropped,
             )
 
         required_columns = [
@@ -239,4 +238,5 @@ class CombatLoadService:
             raise ValidationError(
                 f"DataFrame '{frame_name}' não contém as colunas obrigatórias: {missing}"
             )
+
 
