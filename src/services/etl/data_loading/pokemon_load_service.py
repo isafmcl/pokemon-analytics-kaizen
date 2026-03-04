@@ -53,11 +53,24 @@ class PokemonLoadService:
             frame_name="pokemon_df",
         )
 
-        pokemon_ids = [int(x) for x in pokemon_df[id_column].tolist()]
+        # Filter out Pokemon with ID > 799 (only base generation Pokemon)
+        pokemon_df_filtered = pokemon_df[pd.to_numeric(pokemon_df[id_column], errors="coerce") <= 799].copy()
+        filtered_out = len(pokemon_df) - len(pokemon_df_filtered)
+        if filtered_out > 0:
+            self._logger.warning(
+                "Filtrando %s Pokemon com ID > 799 durante carga",
+                filtered_out,
+            )
+        
+        if pokemon_df_filtered.empty:
+            self._logger.info("Nenhum Pokemon válido para carregar após filtros")
+            return 0
+
+        pokemon_ids = [int(x) for x in pokemon_df_filtered[id_column].tolist()]
         existing_ids = set(self._repository.get_existing_pokemon_ids(pokemon_ids))
 
-        new_rows = pokemon_df[~pokemon_df[id_column].isin(existing_ids)]
-        existing_rows = pokemon_df[pokemon_df[id_column].isin(existing_ids)]
+        new_rows = pokemon_df_filtered[~pokemon_df_filtered[id_column].isin(existing_ids)]
+        existing_rows = pokemon_df_filtered[pokemon_df_filtered[id_column].isin(existing_ids)]
 
         inserted = 0
 
