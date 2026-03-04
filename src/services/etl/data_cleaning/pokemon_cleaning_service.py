@@ -81,6 +81,17 @@ class PokemonCleaningService:
                 cleaned[legendary_column].astype("object"),
             )
         cleaned = self._normalize_stat_columns(cleaned)
+        
+        # Filter out Pokemon with ID > 799 (only base generation Pokemon are supported)
+        if "pokemon_id" in cleaned.columns:
+            original_count = len(cleaned)
+            cleaned = cleaned[pd.to_numeric(cleaned["pokemon_id"], errors="coerce") <= 799]
+            filtered_out = original_count - len(cleaned)
+            if filtered_out > 0:
+                self._logger.warning(
+                    "Filtrando %s Pokemon com ID > 799 (fora do escopo da API)",
+                    filtered_out,
+                )
 
         return cleaned
 
