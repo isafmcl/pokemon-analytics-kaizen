@@ -1,150 +1,227 @@
 from __future__ import annotations
 from logging import Logger
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 import pandas as pd
+
 from core.exceptions import DatabaseError, ValidationError
-from database.models import Pokemon
+from database.models import Combat
+from repositories.combat_repository import CombatRepository
 from repositories.pokemon_repository import PokemonRepository
 
-class PokemonLoadService:
+
+class CombatLoadService:
+    """Serviço que realiza carga em lote idempotente de registros de combate."""
+
     def __init__(
         self,
         *,
-        repository: PokemonRepository,
+        repository: CombatRepository,
+        pokemon_repository: PokemonRepository,
         logger: Logger,
     ) -> None:
-
+        """Inicializa um novo ``CombatLoadService``."""
 
         self._repository = repository
+        self._pokemon_repository = pokemon_repository
         self._logger = logger
 
-    def load_pokemon(
+    def load_combats(
         self,
-        pokemon_df: pd.DataFrame,
+        combats_df: pd.DataFrame,
         *,
-        id_column: str = "pokemon_id",
-        name_column: str = "name",
-        type_1_column: str = "type_1",
-        type_2_column: str = "type_2",
-        generation_column: str = "generation",
-        legendary_column: str = "legendary",
-        hp_column: str = "hp",
-        attack_column: str = "attack",
-        defense_column: str = "defense",
-        sp_attack_column: str = "sp_attack",
-        sp_defense_column: str = "sp_defense",
-        speed_column: str = "speed",
+        first_pokemon_column: str = "first_pokemon_id",
+        second_pokemon_column: str = "second_pokemon_id",
+        winner_column: str = "winner_id",
     ) -> int:
-        """Persiste dados mestres de Pokemon de forma idempotente."""
+        """Persiste registros de combate de forma idempotente."""
 
-        if pokemon_df.empty:
-            self._logger.info("Pokemon DataFrame is empty; nothing to load")
+        total_bruto = int(combats_df.shape[0])
+
+        if combats_df.empty:
+            self._logger.info("DataFrame de combates está vazio; nada a carregar")
             return 0
 
-        required_columns = [
-            id_column,
-            name_column,
-            legendary_column,
-        ]
-
-        self._ensure_columns_present(
-            pokemon_df,
-            required_columns,
-            frame_name="pokemon_df",
+        self._logger.info(
+            "Iniciando carga de combates: %s registros brutos recebidos do ETL",
+            total_bruto,
         )
 
-        # Filter out Pokemon with ID > 799 (only base generation Pokemon)
-        pokemon_df_filtered = pokemon_df[pd.to_numeric(pokemon_df[id_column], errors="coerce") <= 799].copy()
-        filtered_out = len(pokemon_df) - len(pokemon_df_filtered)
-        if filtered_out > 0:
+        combats_normalized = self._normalize_combat_columns(
+            combats_df,
+            first_pokemon_column=first_pokemon_column,
+            second_pokemon_column=second_pokemon_column,
+            winner_column=winner_column,
+        )
+
+        # Safety filter: remove combats with any Pokemon ID > 799
+        original_count = len(combats_normalized)
+        combats_normalized = combats_normalized[
+            (pd.to_numeric(combats_normalized[first_pokemon_column], errors="coerce") <= 799)
+            & (pd.to_numeric(combats_normalized[second_pokemon_column], errors="coerce") <= 799)
+            & (pd.to_numeric(combats_normalized[winner_column], errors="coerce") <= 799)
+        ].copy()
+        if len(combats_normalized) < original_count:
             self._logger.warning(
-                "Filtrando %s Pokemon com ID > 799 durante carga",
-                filtered_out,
+                "Filtrando %d combates com Pokemon ID > 799",
+                original_count - len(combats_normalized),
             )
-        
-        if pokemon_df_filtered.empty:
-            self._logger.info("Nenhum Pokemon válido para carregar após filtros")
+
+        all_ids_series = pd.concat(
+            [
+                combats_normalized[first_pokemon_column],
+                combats_normalized[second_pokemon_column],
+                combats_normalized[winner_column],
+            ],
+            ignore_index=True,
+        )
+
+        all_ids = (
+            pd.to_numeric(all_ids_series, errors="coerce")
+            .dropna()
+            .astype(int)
+            .tolist()
+        )
+
+        valid_ids = set(self._pokemon_repository.get_existing_pokemon_ids(all_ids))
+
+        combats_normalized[first_pokemon_column] = pd.to_numeric(
+            combats_normalized[first_pokemon_column], errors="coerce"
+        ).astype("Int64")
+        combats_normalized[second_pokemon_column] = pd.to_numeric(
+            combats_normalized[second_pokemon_column], errors="coerce"
+        ).astype("Int64")
+        combats_normalized[winner_column] = pd.to_numeric(
+            combats_normalized[winner_column], errors="coerce"
+        ).astype("Int64")
+
+        mask = (
+            combats_normalized[first_pokemon_column].isin(valid_ids)
+            & combats_normalized[second_pokemon_column].isin(valid_ids)
+            & combats_normalized[winner_column].isin(valid_ids)
+        )
+
+        filtered_combats = combats_normalized[mask]
+        dropped = len(combats_normalized) - len(filtered_combats)
+        if dropped > 0:
+            self._logger.warning(
+                "Ignorando %s combates que referenciam IDs de Pokemon desconhecidos",
+                dropped,
+            )
+
+        required_columns = [
+            first_pokemon_column,
+            second_pokemon_column,
+            winner_column,
+        ]
+        self._ensure_columns_present(
+            filtered_combats,
+            required_columns,
+            frame_name="combats_df",
+        )
+
+        all_keys: List[Tuple[int, int, int]] = []
+        for _, row in filtered_combats.iterrows():
+            key = (
+                int(row[first_pokemon_column]),
+                int(row[second_pokemon_column]),
+                int(row[winner_column]),
+            )
+            all_keys.append(key)
+
+        unique_keys_dict = dict.fromkeys(all_keys)
+        unique_keys: List[Tuple[int, int, int]] = list(unique_keys_dict.keys())
+
+        duplicates_in_source = len(all_keys) - len(unique_keys)
+        if duplicates_in_source > 0:
+            self._logger.warning(
+                "Ignorando %s combates duplicados presentes no payload de origem",
+                duplicates_in_source,
+            )
+
+        existing_keys = set(
+            self._repository.get_existing_combat_keys(unique_keys)
+        )
+
+        new_entities: List[Combat] = []
+        for key in unique_keys:
+            if key in existing_keys:
+                continue
+            first_id, second_id, winner_id = key
+            entity = Combat(
+                first_pokemon_id=first_id,
+                second_pokemon_id=second_id,
+                winner_id=winner_id,
+            )
+            new_entities.append(entity)
+
+        total_unicos_pos_filtros = len(unique_keys)
+        total_existentes = total_unicos_pos_filtros - len(new_entities)
+
+        self._logger.info(
+            "Resumo da carga de combates: brutos=%s, invalidos_por_pokemon=%s, duplicados_na_origem=%s, unicos_pos_filtros=%s, ja_existiam_no_banco=%s, novos_a_inserir=%s",
+            total_bruto,
+            dropped,
+            duplicates_in_source,
+            total_unicos_pos_filtros,
+            total_existentes,
+            len(new_entities),
+        )
+
+        if not new_entities:
+            self._logger.info("Todos os combates já existiam; nada novo a inserir")
             return 0
 
-        pokemon_ids = [int(x) for x in pokemon_df_filtered[id_column].tolist()]
-        existing_ids = set(self._repository.get_existing_pokemon_ids(pokemon_ids))
+        self._logger.info(
+            "Inserindo %s novos registros de combate",
+            len(new_entities),
+        )
 
-        new_rows = pokemon_df_filtered[~pokemon_df_filtered[id_column].isin(existing_ids)]
-        existing_rows = pokemon_df_filtered[pokemon_df_filtered[id_column].isin(existing_ids)]
+        try:
+            self._repository.add_many(new_entities)
+            self._repository.commit()
+        except DatabaseError:
+            self._repository.rollback()
+            raise
 
-        inserted = 0
+        return len(new_entities)
 
-        if not new_rows.empty:
-            new_entities: List[Pokemon] = []
-            for _, row in new_rows.iterrows():
-                entity = Pokemon(
-                    pokemon_id=int(row[id_column]),
-                    name=str(row[name_column]),
-                    type_1=self._safe_str(row.get(type_1_column)),
-                    type_2=self._safe_str(row.get(type_2_column)),
-                    generation=self._safe_int(row.get(generation_column)),
-                    legendary=bool(row[legendary_column]),
-                    hp=self._safe_int(row.get(hp_column)),
-                    attack=self._safe_int(row.get(attack_column)),
-                    defense=self._safe_int(row.get(defense_column)),
-                    sp_attack=self._safe_int(row.get(sp_attack_column)),
-                    sp_defense=self._safe_int(row.get(sp_defense_column)),
-                    speed=self._safe_int(row.get(speed_column)),
-                )
-                new_entities.append(entity)
+    def _normalize_combat_columns(
+        self,
+        combats_df: pd.DataFrame,
+        *,
+        first_pokemon_column: str,
+        second_pokemon_column: str,
+        winner_column: str,
+    ) -> pd.DataFrame:
 
+        normalized = combats_df.copy(deep=True)
+        rename_map: dict[str, str] = {}
+
+        if first_pokemon_column not in normalized.columns and "first_pokemon" in normalized.columns:
             self._logger.info(
-                "Inserindo %s novos registros de Pokemon",
-                len(new_entities),
+                "Renaming combats column 'first_pokemon' to '%s' for consistency",
+                first_pokemon_column,
             )
-            try:
-                self._repository.add_many(new_entities)
-                self._repository.commit()
-            except DatabaseError:
-                self._repository.rollback()
-                raise
-            inserted = len(new_entities)
+            rename_map["first_pokemon"] = first_pokemon_column
 
-        if not existing_rows.empty:
+        if second_pokemon_column not in normalized.columns and "second_pokemon" in normalized.columns:
             self._logger.info(
-                "Atualizando %s registros de Pokemon já existentes com os atributos mais recentes",
-                len(existing_rows),
+                "Renaming combats column 'second_pokemon' to '%s' for consistency",
+                second_pokemon_column,
             )
-            try:
-                id_to_row = {
-                    int(row[id_column]): row for _, row in existing_rows.iterrows()
-                }
+            rename_map["second_pokemon"] = second_pokemon_column
 
-                q = self._repository._session.query(Pokemon).filter(
-                    Pokemon.pokemon_id.in_(list(id_to_row.keys()))
-                )
-                for entity in q.all():
-                    row = id_to_row.get(entity.pokemon_id)
-                    if row is None:
-                        continue
-                    entity.name = str(row[name_column])
-                    entity.type_1 = self._safe_str(row.get(type_1_column))
-                    entity.type_2 = self._safe_str(row.get(type_2_column))
-                    entity.generation = self._safe_int(row.get(generation_column))
-                    entity.legendary = bool(row[legendary_column])
-                    entity.hp = self._safe_int(row.get(hp_column))
-                    entity.attack = self._safe_int(row.get(attack_column))
-                    entity.defense = self._safe_int(row.get(defense_column))
-                    entity.sp_attack = self._safe_int(row.get(sp_attack_column))
-                    entity.sp_defense = self._safe_int(row.get(sp_defense_column))
-                    entity.speed = self._safe_int(row.get(speed_column))
-
-                self._repository.commit()
-            except DatabaseError:
-                self._repository.rollback()
-                raise
-
-        if inserted == 0 and existing_rows.empty:
+        if winner_column not in normalized.columns and "winner" in normalized.columns:
             self._logger.info(
-                "Todos os Pokemon já existiam; atributos atualizados quando aplicável"
+                "Renaming combats column 'winner' to '%s' for consistency",
+                winner_column,
             )
+            rename_map["winner"] = winner_column
 
-        return inserted
+        if rename_map:
+            normalized = normalized.rename(columns=rename_map)
+
+        return normalized
 
     def _ensure_columns_present(
         self,
@@ -153,7 +230,6 @@ class PokemonLoadService:
         *,
         frame_name: str,
     ) -> None:
-        """Valida se um DataFrame contém as colunas esperadas."""
 
         missing = [col for col in required_columns if col not in frame.columns]
         if missing:
@@ -161,22 +237,3 @@ class PokemonLoadService:
                 f"DataFrame '{frame_name}' não contém as colunas obrigatórias: {missing}"
             )
 
-    @staticmethod
-    def _safe_int(value: object | None) -> int | None:
-        """Converte um valor para ``int`` ou retorna ``None`` em caso de falha."""
-
-        if value is None:
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
-    @staticmethod
-    def _safe_str(value: object | None) -> str | None:
-        """Converte um valor para ``str`` ou retorna ``None`` em caso de falha."""
-
-        if value is None:
-            return None
-        text = str(value).strip()
-        return text or None
